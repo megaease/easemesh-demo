@@ -1,0 +1,5 @@
+kind: ConsulServiceRegistry
+name: consul-service-registry
+address: consul-server-0.consul-server.default:8500
+scheme: http
+syncInterval: 5s

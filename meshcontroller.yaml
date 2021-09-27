@@ -1,0 +1,7 @@
+kind: MeshController
+name: easemesh-controller
+apiPort: 13009
+externalServiceRegistry: consul-service-registry
+heartbeatInterval: 5s
+ingressPort: 19527
+registryType: consul

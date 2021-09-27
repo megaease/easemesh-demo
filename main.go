@@ -175,32 +175,33 @@ func newServiceHandler(client *api.Client) *serviceHandler {
 
 	go func() {
 		for {
-			restaurantURL, err := h.getServiceURLFromConsul(restaurantService)
+			var (
+				restaurantURL string
+				deliveryURL   string
+				awardURL      string
+				err           error
+			)
+
+			restaurantURL, err = h.getServiceURLFromConsul(restaurantService)
 			if err != nil {
 				log.Printf("get restaurant service url failed: %v", err)
-			} else {
-				h.urlMutex.Lock()
-				h.restaurantURL = restaurantURL
-				h.urlMutex.Unlock()
 			}
 
-			awardURL, err := h.getServiceURLFromConsul(awardService)
+			awardURL, err = h.getServiceURLFromConsul(awardService)
 			if err != nil {
 				log.Printf("get award service url failed: %v", err)
-			} else {
-				h.urlMutex.Lock()
-				h.awardURL = awardURL
-				h.urlMutex.Unlock()
 			}
 
-			deliveryURL, err := h.getServiceURLFromConsul(deliveryService)
+			deliveryURL, err = h.getServiceURLFromConsul(deliveryService)
 			if err != nil {
 				log.Printf("get delivery service url failed: %v", err)
-			} else {
-				h.urlMutex.Lock()
-				h.deliveryURL = deliveryURL
-				h.urlMutex.Unlock()
 			}
+
+			h.urlMutex.Lock()
+			h.restaurantURL = restaurantURL
+			h.awardURL = awardURL
+			h.deliveryURL = deliveryURL
+			h.urlMutex.Unlock()
 
 			<-time.After(5 * time.Second)
 		}
@@ -324,8 +325,6 @@ func (h *serviceHandler) handleRestaurant(body []byte) (interface{}, error) {
 		panic(fmt.Errorf("call delivery service failed: %v", err))
 	}
 
-	fmt.Printf("delivery url: %s\n", deliveryURL)
-	fmt.Printf("delivery resp: %+v\n", deliveryResp.Result())
 	return &RestaurantResponse{
 		OrderID:      req.OrderID,
 		Food:         req.Food,
@@ -353,16 +352,24 @@ func (h *serviceHandler) getServiceURLFromCache(serviceName string) (string, err
 	h.urlMutex.Lock()
 	defer h.urlMutex.Unlock()
 
+	var url string
+
 	switch serviceName {
 	case restaurantService:
-		return h.restaurantURL, nil
+		url = h.restaurantURL
 	case awardService:
-		return h.awardURL, nil
+		url = h.awardURL
 	case deliveryService:
-		return h.deliveryURL, nil
+		url = h.deliveryURL
 	default:
 		return "", fmt.Errorf("unsupport service %s", serviceName)
 	}
+
+	if url == "" {
+		return "", fmt.Errorf("url not found")
+	}
+
+	return url, nil
 }
 
 func (h *serviceHandler) getServiceURLFromConsul(serviceName string) (string, error) {
