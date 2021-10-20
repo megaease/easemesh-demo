@@ -1,0 +1,18 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: Service
+metadata:
+  name: delivery
+spec:
+  registerTenant: consul-service-registry
+  sidecar:
+    discoverytype: consul
+    address: 127.0.0.1
+    ingressport: 13001
+    ingressprotocol: http
+    egressport: 13002
+    egressprotocol: http
+  resilience: null
+  canary: null
+  loadBalance:
+    policy: random
+    headerhashkey: ""

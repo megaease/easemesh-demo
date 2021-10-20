@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    mesh.megaease.com/service-name: restaurant
+  name: restaurant
+  namespace: mesh-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurant
+  template:
+    metadata:
+      labels:
+        app: restaurant
+    spec:
+      containers:
+      - name: restaurant
+        image: megaease/consuldemo:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: SERVICE_NAME
+          value: restaurant
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant
+  namespace: mesh-service
+spec:
+  selector:
+    app: restaurant
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
