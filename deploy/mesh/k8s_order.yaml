@@ -2,38 +2,40 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    mesh.megaease.com/service-name: order
-  name: order
+    mesh.megaease.com/service-name: order-mesh
+  name: order-mesh
   namespace: mesh-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: order
+      app: order-mesh
   template:
     metadata:
       labels:
-        app: order
+        app: order-mesh
     spec:
       containers:
-      - name: order
+      - name: order-mesh
         image: megaease/consuldemo:latest
         ports:
         - containerPort: 80
         env:
         - name: SERVICE_NAME
-          value: order
+          value: order-mesh
+        - name: ZIPKIN_SERVER_URL
+          value: http://192.168.0.200:32176/api/v2/spans
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: order
+  name: order-mesh
   namespace: mesh-service
 spec:
   selector:
-    app: order
+    app: order-mesh
   ports:
     - protocol: TCP
       port: 80
@@ -44,12 +46,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-public
+  name: order-mesh-public
   namespace: mesh-service
 spec:
   type: NodePort
   selector:
-    app: order
+    app: order-mesh
   ports:
     - protocol: TCP
       port: 80

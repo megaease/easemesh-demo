@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http2kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http2kafka
+  template:
+    metadata:
+      labels:
+        app: http2kafka
+    spec:
+      containers:
+      - name: http2kafka
+        image: megaease/http2kafka:latest
+        ports:
+        - containerPort: 28080
+        env:
+        - name: HTTP_PORT
+          value: "28080"
+        - name: KAFKA_BROKERS
+          value: 192.168.0.100:9092
+          #value: kafka-0.kafka-hs:9093,kafka-1.kafka-hs:9093,kafka-2.kafka-hs:9093
+        - name: KAFKA_TOPIC
+          value: log-tracing
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: http2kafka
+spec:
+  type: NodePort
+  selector:
+    app: http2kafka
+  ports:
+    - protocol: TCP
+      port: 28080
+      targetPort: 28080

@@ -1,9 +1,9 @@
 apiVersion: mesh.megaease.com/v1alpha1
 kind: Service
 metadata:
-  name: order
+  name: order-mesh
 spec:
-  registerTenant: consul-service-registry
+  registerTenant: mesh-tenant
   sidecar:
     discoverytype: consul
     address: 127.0.0.1

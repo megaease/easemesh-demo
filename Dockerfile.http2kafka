@@ -1,0 +1,24 @@
+FROM golang:1.16-alpine AS builder
+
+RUN apk --no-cache add make
+
+WORKDIR /opt/http2kafka
+COPY . .
+
+RUN make build
+
+# ---
+
+FROM alpine:3.13
+
+WORKDIR /opt/http2kafka
+
+COPY entrypoint-http2kafka.sh /
+COPY --from=builder /opt/http2kafka/bin/ /opt/http2kafka/bin/
+
+RUN apk --no-cache add tini tzdata && \
+        chmod +x /entrypoint-http2kafka.sh /opt/http2kafka/bin/*
+
+ENV PATH /opt/http2kafka/bin:$PATH
+
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint-http2kafka.sh"]

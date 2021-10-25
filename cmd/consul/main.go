@@ -31,10 +31,10 @@ var (
 )
 
 const (
-	orderSerice       = "order"
-	restaurantService = "restaurant"
-	awardService      = "award"
-	deliveryService   = "delivery"
+	orderSerice       = "order-consul"
+	restaurantService = "restaurant-consul"
+	awardService      = "award-mesh"
+	deliveryService   = "delivery-consul"
 	timeFormat        = "2006-01-02T15:04:05"
 )
 

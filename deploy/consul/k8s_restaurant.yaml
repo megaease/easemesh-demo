@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: delivery
+  name: restaurant-consul
   labels:
-    app: delivery
+    app: restaurant-consul
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: delivery
+      app: restaurant-consul
   template:
     metadata:
       labels:
-        app: delivery
+        app: restaurant-consul
     spec:
       containers:
-      - name: delivery
+      - name: restaurant-consul
         image: megaease/consuldemo:latest
         ports:
         - containerPort: 80
         env:
         - name: SERVICE_NAME
-          value: delivery
+          value: restaurant-consul
         - name: INSTANCE_ID
           valueFrom:
             fieldRef:
@@ -40,10 +40,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: delivery
+  name: restaurant-consul
 spec:
   selector:
-    app: delivery
+    app: restaurant-consul
   ports:
     - protocol: TCP
       port: 80

@@ -1,0 +1,6 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: Tenant
+metadata:
+  name: mesh-tenant
+spec:
+  description: Mesh Tenant

@@ -2,38 +2,40 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    mesh.megaease.com/service-name: restaurant
-  name: restaurant
+    mesh.megaease.com/service-name: restaurant-mesh
+  name: restaurant-mesh
   namespace: mesh-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: restaurant
+      app: restaurant-mesh
   template:
     metadata:
       labels:
-        app: restaurant
+        app: restaurant-mesh
     spec:
       containers:
-      - name: restaurant
+      - name: restaurant-mesh
         image: megaease/consuldemo:latest
         ports:
         - containerPort: 80
         env:
         - name: SERVICE_NAME
-          value: restaurant
+          value: restaurant-mesh
+        - name: ZIPKIN_SERVER_URL
+          value: http://192.168.0.200:32176/api/v2/spans
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: restaurant
+  name: restaurant-mesh
   namespace: mesh-service
 spec:
   selector:
-    app: restaurant
+    app: restaurant-mesh
   ports:
     - protocol: TCP
       port: 80

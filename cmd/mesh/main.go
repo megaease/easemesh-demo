@@ -14,6 +14,10 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/opentracing/opentracing-go"
+
+	"github.com/megaease/consuldemo/pkg/tracing"
+	"github.com/megaease/consuldemo/pkg/tracing/zipkin"
 )
 
 var (
@@ -21,16 +25,19 @@ var (
 	podHealthPort  = 9900
 	podEgressPort  = 13002
 
-	serviceName = os.Getenv("SERVICE_NAME")
+	serviceName     = os.Getenv("SERVICE_NAME")
+	zipkinServerURL = os.Getenv("ZIPKIN_SERVER_URL")
 
 	restyClient = resty.New()
+
+	tracer *tracing.Tracing
 )
 
 const (
-	orderSerice       = "order"
-	restaurantService = "restaurant"
-	awardService      = "award"
-	deliveryService   = "delivery"
+	orderSerice       = "order-mesh"
+	restaurantService = "restaurant-mesh"
+	awardService      = "award-mesh"
+	deliveryService   = "delivery-mesh"
 	timeFormat        = "2006-01-02T15:04:05"
 )
 
@@ -98,6 +105,27 @@ func prefligt() {
 	default:
 		exitf("unsupport service name: %s", serviceName)
 	}
+
+	serverURL := "http://localhost:9411/api/v2/spans"
+	if zipkinServerURL != "" {
+		serverURL = zipkinServerURL
+	}
+
+	var err error
+	tracer, err = tracing.New(&tracing.Spec{
+		ServiceName: serviceName,
+		Zipkin: &zipkin.Spec{
+			Hostport:   fmt.Sprintf("%s:%d", serviceName, podServicePort),
+			ServerURL:  serverURL,
+			SampleRate: 1,
+			SameSpan:   true,
+			ID128Bit:   false,
+		},
+	})
+
+	if err != nil {
+		exitf("create tracing failed: %v", err)
+	}
 }
 
 func main() {
@@ -122,6 +150,7 @@ func main() {
 	}()
 
 	go func() {
+		log.Println("listen health port:", podHealthPort)
 		err := healthServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			exitf("%v", err)
@@ -188,9 +217,9 @@ func (h *serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case orderSerice:
 		resp, err = h.handleOrder(body)
 	case restaurantService:
-		resp, err = h.handleRestaurant(body)
+		resp, err = h.handleRestaurant(r.Header, body)
 	case deliveryService:
-		resp, err = h.handleDelivery(body)
+		resp, err = h.handleDelivery(r.Header, body)
 	default:
 		panic(fmt.Errorf("BUG: no correct service"))
 	}
@@ -212,6 +241,9 @@ func (h *serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *serviceHandler) handleOrder(body []byte) (interface{}, error) {
+	span := tracing.NewSpan(tracer, serviceName)
+	defer span.Finish()
+
 	req := &OrderRequest{}
 	err := json.Unmarshal(body, req)
 	if err != nil {
@@ -219,13 +251,21 @@ func (h *serviceHandler) handleOrder(body []byte) (interface{}, error) {
 	}
 
 	restaurantURL := fmt.Sprintf("http://%s:%d", restaurantService, podEgressPort)
-	restaurantResp, err := restyClient.R().SetHeader("Content-Type", "application/json").SetBody(RestaurantRequest{
+	restaurantReq := restyClient.R()
+	restaurantReq.SetHeader("Content-Type", "application/json").SetBody(RestaurantRequest{
 		OrderID: req.OrderID,
 		Food:    req.Food,
-	}).SetResult(&RestaurantResponse{}).Post(restaurantURL)
+	})
+	restaurantReq.SetResult(&RestaurantResponse{})
+
+	tracer.Inject(span.Context(),
+		opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(restaurantReq.Header))
+
+	restaurantResp, err := restaurantReq.Post(restaurantURL)
 	if err != nil {
 		panic(fmt.Errorf("call restaurant service failed: %v", err))
 	}
+
 	resp := &OrderResponse{
 		OrderID: req.OrderID,
 		Food: &OrderResponseItem{
@@ -237,34 +277,54 @@ func (h *serviceHandler) handleOrder(body []byte) (interface{}, error) {
 	// NOTE: Allow failure of the award service.
 
 	awardURL := fmt.Sprintf("http://%s:%d", awardService, podEgressPort)
-	awardResp, err := restyClient.R().SetHeader("Content-Type", "application/json").SetBody(AwardRequest{
+	awardReq := restyClient.R()
+	awardReq.SetHeader("Content-Type", "application/json").SetBody(AwardRequest{
 		OrderID: req.OrderID,
-	}).SetResult(&AwardResponse{}).Post(awardURL)
+	})
+	awardReq.SetResult(&AwardResponse{})
 
-	if err == nil {
+	tracer.Inject(span.Context(),
+		opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(awardReq.Header))
+
+	awardResp, err := awardReq.Post(awardURL)
+	if err != nil {
+		log.Printf("call award %s failed: %v", awardURL, err)
+	} else {
 		resp.Award = &OrderResponseItem{
 			Item:         awardResp.Result().(*AwardResponse).Award,
 			DeliveryTime: awardResp.Result().(*AwardResponse).DeliveryTime,
 		}
-	} else {
-		log.Printf("call award %s failed: %v", awardURL, err)
 	}
 
 	return resp, nil
 }
 
-func (h *serviceHandler) handleRestaurant(body []byte) (interface{}, error) {
+func (h *serviceHandler) handleRestaurant(header http.Header, body []byte) (interface{}, error) {
+	deliveryReq := restyClient.R()
+	parentCtx, err := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(header))
+	if err != nil {
+		log.Printf("extract zipkin header %+v failed: %v", header, err)
+	} else {
+		span := tracing.NewSpanWithContext(tracer, restaurantService, parentCtx)
+		defer span.Finish()
+		tracer.Inject(span.Context(),
+			opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(deliveryReq.Header))
+	}
+
 	req := &RestaurantRequest{}
-	err := json.Unmarshal(body, req)
+	err = json.Unmarshal(body, req)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal failed: %v", err)
 	}
 
 	deliveryURL := fmt.Sprintf("http://%s:%d", deliveryService, podEgressPort)
-	deliveryResp, err := restyClient.R().SetHeader("Content-Type", "application/json").SetBody(DeliveryRequest{
+	deliveryReq.SetHeader("Content-Type", "application/json").SetBody(DeliveryRequest{
 		OrderID: req.OrderID,
 		Item:    req.Food,
-	}).SetResult(&DeliveryResponse{}).Post(deliveryURL)
+	})
+	deliveryReq.SetResult(&DeliveryResponse{})
+
+	deliveryResp, err := deliveryReq.Post(deliveryURL)
 	if err != nil {
 		panic(fmt.Errorf("call delivery service failed: %v", err))
 	}
@@ -276,14 +336,27 @@ func (h *serviceHandler) handleRestaurant(body []byte) (interface{}, error) {
 	}, nil
 }
 
-func (h *serviceHandler) handleDelivery(body []byte) (interface{}, error) {
+func (h *serviceHandler) handleDelivery(header http.Header, body []byte) (interface{}, error) {
+	log.Printf("header: %+v, body: %s", header, body)
+
+	parentCtx, err := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(header))
+	if err != nil {
+		log.Printf("extract zipkin header %+v failed: %v", header, err)
+	} else {
+		span := tracing.NewSpanWithContext(tracer, deliveryService, parentCtx)
+		defer span.Finish()
+	}
+
 	req := &DeliveryRequest{}
-	err := json.Unmarshal(body, req)
+	err = json.Unmarshal(body, req)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal failed: %v", err)
 	}
 
 	deliveryTime := time.Now().Add(10 * time.Minute)
+
+	// NOTE: Make tracing more readable
+	time.Sleep(10 * time.Millisecond)
 
 	return &DeliveryResponse{
 		OrderID:      req.OrderID,
