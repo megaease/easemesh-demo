@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: award-consul
 spec:
-  registerTenant: consul-service-registry
+  registerTenant: global
   sidecar:
     discoverytype: consul
     address: 127.0.0.1

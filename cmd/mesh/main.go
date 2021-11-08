@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +17,8 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/opentracing/opentracing-go"
+	zipkintracer "github.com/openzipkin-contrib/zipkin-go-opentracing"
+	"github.com/openzipkin/zipkin-go/model"
 
 	"github.com/megaease/consuldemo/pkg/tracing"
 	"github.com/megaease/consuldemo/pkg/tracing/zipkin"
@@ -299,9 +303,54 @@ func (h *serviceHandler) handleOrder(body []byte) (interface{}, error) {
 	return resp, nil
 }
 
+func (h *serviceHandler) postServerZipkin(parentCtx opentracing.SpanContext) {
+	parentZipkinCtx := parentCtx.(zipkintracer.SpanContext)
+
+	duration := time.Duration(50000000)
+	// NOTE: Mock server span.
+	spanModel := model.SpanModel{
+		SpanContext: model.SpanContext{
+			TraceID: parentZipkinCtx.TraceID,
+			ID:      model.ID(parentZipkinCtx.TraceID.Low),
+		},
+		Name:      "post",
+		Kind:      "SERVER",
+		Timestamp: time.Now(),
+		Duration:  duration,
+		LocalEndpoint: &model.Endpoint{
+			ServiceName: restaurantService,
+			IPv4:        net.IPv4(10, 244, 0, 186),
+		},
+		RemoteEndpoint: &model.Endpoint{
+			IPv4: net.IPv4(127, 0, 0, 1),
+			Port: 30000,
+		},
+		Tags: map[string]string{
+			"http.method": "POST",
+			"http.path":   "/",
+			"http.route":  "/",
+		},
+		Shared: true,
+	}
+
+	time.Sleep(duration)
+
+	modelBuff, _ := json.Marshal(spanModel)
+	resp, err := http.Post(zipkinServerURL, "application/json", bytes.NewReader(modelBuff))
+	if err != nil {
+		log.Printf("post zipkin server failed: %v", err)
+	} else if resp.StatusCode != 200 {
+		log.Printf("post zipkin server code: %d", resp.StatusCode)
+	}
+}
+
 func (h *serviceHandler) handleRestaurant(header http.Header, body []byte) (interface{}, error) {
+
 	deliveryReq := restyClient.R()
 	parentCtx, err := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(header))
+
+	// h.postServerZipkin(parentCtx)
+
 	if err != nil {
 		log.Printf("extract zipkin header %+v failed: %v", header, err)
 	} else {

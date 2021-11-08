@@ -1,0 +1,5 @@
+kind: ConsulServiceRegistry
+name: consul-service-registry
+address: 192.168.0.200:30789
+scheme: http
+syncInterval: 5s

@@ -14,6 +14,10 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
+
+	"github.com/megaease/consuldemo/pkg/jsontool"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 var (
@@ -47,7 +51,7 @@ func preflight() {
 
 	for {
 		config := sarama.NewConfig()
-		config.Version = sarama.V1_0_0_0
+		config.Version = sarama.MinVersion
 
 		var err error
 		producer, err = sarama.NewAsyncProducer(brokers, config)
@@ -112,21 +116,33 @@ func (h *zipkinHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body.Close()
 
-	// NOTE: Ignore consul registry requests.
-	if strings.Index(string(body), "/v1/catalog/services") >= 0 {
-		return
+	objects := jsontool.GetObjects(body, func(object []byte) bool {
+		if strings.Contains(string(object), "/v1/catalog/services") ||
+			strings.Contains(string(object), "/v1/health/service") {
+			return false
+		}
+		return true
+	})
+
+	for _, object := range objects {
+		object, _ = sjson.SetBytes(object, "type", "log-tracing")
+
+		name := gjson.GetBytes(object, "name").String()
+		if strings.Contains(name, "restaurant") {
+			object, _ = sjson.SetBytes(object, "kind", "SERVER")
+		}
+
+		log.Printf("message: %s\n", object)
+
+		producer.Input() <- &sarama.ProducerMessage{
+			Topic: kafkaTopic,
+			Key:   nil,
+			Value: sarama.ByteEncoder(object),
+		}
+
+		messageCount := atomic.AddUint64(&h.messageCount, 1)
+		log.Printf("message count: %d", messageCount)
 	}
-
-	fmt.Printf("header: %+v body: %s\n", r.Header, body)
-
-	producer.Input() <- &sarama.ProducerMessage{
-		Topic: kafkaTopic,
-		Key:   nil,
-		Value: sarama.ByteEncoder(body),
-	}
-
-	messageCount := atomic.AddUint64(&h.messageCount, 1)
-	log.Printf("message count: %d", messageCount)
 }
 
 func exitf(format string, args ...interface{}) {

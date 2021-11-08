@@ -1,0 +1,6 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: Tenant
+metadata:
+  name: global
+spec:
+  description: Global Tenant
