@@ -18,6 +18,7 @@ spec:
       containers:
       - name: order-mesh
         image: megaease/consuldemo:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
         env:

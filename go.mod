@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/Shopify/sarama v1.30.0
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/hashicorp/consul/api v1.10.1
 	github.com/json-iterator/go v1.1.12
@@ -50,4 +51,6 @@ require (
 	golang.org/x/net v0.0.0-20210917221730-978cfadd31cf // indirect
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 	google.golang.org/grpc v1.30.0 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

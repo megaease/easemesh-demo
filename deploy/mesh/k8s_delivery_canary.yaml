@@ -2,28 +2,29 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    mesh.megaease.com/service-name: restaurant-mesh
-  name: restaurant-mesh
+    mesh.megaease.com/service-name: delivery-mesh
+    mesh.megaease.com/service-labels: release=delivery-mesh-canary
+  name: delivery-mesh-canary
   namespace: mesh-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: restaurant-mesh
+      app: delivery-mesh-canary
   template:
     metadata:
       labels:
-        app: restaurant-mesh
+        app: delivery-mesh-canary
     spec:
       containers:
-      - name: restaurant-mesh
+      - name: delivery-mesh-canary
         image: megaease/consuldemo:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
         env:
         - name: SERVICE_NAME
-          value: restaurant-mesh
+          value: delivery-mesh-canary
         - name: ZIPKIN_SERVER_URL
           value: https://dev.megaease.cn/zipkin
 
@@ -32,11 +33,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: restaurant-mesh
+  name: delivery-mesh-canary
   namespace: mesh-service
 spec:
   selector:
-    app: restaurant-mesh
+    app: delivery-mesh-canary
   ports:
     - protocol: TCP
       port: 80

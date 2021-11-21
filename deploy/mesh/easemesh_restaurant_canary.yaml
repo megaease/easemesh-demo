@@ -1,0 +1,13 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: ServiceCanary
+metadata:
+  name: restaurant-mesh-canary
+spec:
+  selector:
+    matchServices: [restaurant-mesh]
+    matchInstanceLabels: {release: restaurant-mesh-canary}
+  trafficRules:
+    headers:
+      X-Location:
+        exact: Beijing
+

@@ -1,0 +1,20 @@
+# The reason why canary can't be an attachment of service is
+# that there will be global canary features crossing multiple services.
+
+# X-EaseMesh-Route:
+#   order,
+#   resturant(canary:restaurant-canary-mesh),
+#   delievery(canary:delivery-canary-mesh)
+
+apiVersion: mesh.megaease.com/v1alpha1
+kind: ServiceCanary
+metadata:
+  name: multiple-canary
+spec:
+  selector:
+    matchServices: [restaurant-mesh, delivery-mesh]
+    matchInstanceLabels: {release: multiple-canary}
+  trafficRules:
+    headers:
+      X-Phone-OS:
+        exact: Android

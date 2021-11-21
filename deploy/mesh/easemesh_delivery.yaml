@@ -12,7 +12,6 @@ spec:
     egressport: 13002
     egressprotocol: http
   resilience: null
-  canary: null
   loadBalance:
     policy: random
     headerhashkey: ""
