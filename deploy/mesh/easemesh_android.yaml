@@ -1,0 +1,12 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: ServiceCanary
+metadata:
+  name: refund-android
+spec:
+  selector:
+    matchServices: [restaurant-mesh, delivery-mesh]
+    matchInstanceLabels: {release: refund-android}
+  trafficRules:
+    headers:
+      X-Phone-Os:
+        exact: Android

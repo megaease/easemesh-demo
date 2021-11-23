@@ -35,12 +35,14 @@ var (
 )
 
 const (
-	orderSerice             = "order-mesh"
-	restaurantService       = "restaurant-mesh"
-	restaurantCanaryService = "restaurant-mesh-canary"
-	awardService            = "award-mesh"
-	deliveryService         = "delivery-mesh"
-	devliveryCanaryService  = "delivery-mesh-canary"
+	orderSerice              = "order-mesh"
+	restaurantService        = "restaurant-mesh"
+	restaurantBeijingService = "restaurant-mesh-beijing"
+	restaurantAndroidService = "restaurant-mesh-android"
+	awardService             = "award-mesh"
+	deliveryService          = "delivery-mesh"
+	deliveryBeijingService   = "delivery-mesh-beijing"
+	deliveryAndroidService   = "delivery-mesh-android"
 
 	timeFormat = "2006-01-02T15:04:05"
 )
@@ -70,6 +72,9 @@ type (
 		OrderID      string `json:"order_id"`
 		Food         string `json:"food"`
 		DeliveryTime string `json:"delivery_time"`
+
+		// Android canary fields.
+		Coupon string `json:"coupon,omitempty"`
 	}
 
 	// AwardRequest is the request of award.
@@ -95,6 +100,9 @@ type (
 		OrderID      string `json:"order_id"`
 		Item         string `json:"item"`
 		DeliveryTime string `json:"delivery_time"`
+
+		// Android canary fields.
+		Late *bool `json:"late,omitempty"`
 	}
 )
 
@@ -105,7 +113,8 @@ func prefligt() {
 
 	switch serviceName {
 	case orderSerice, restaurantService, deliveryService,
-		restaurantCanaryService, devliveryCanaryService:
+		restaurantBeijingService, deliveryBeijingService,
+		restaurantAndroidService, deliveryAndroidService:
 	default:
 		exitf("unsupport service name: %s", serviceName)
 	}
@@ -221,9 +230,9 @@ func (h *serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch serviceName {
 	case orderSerice:
 		resp, err = h.handleOrder(r.Header, body)
-	case restaurantService, restaurantCanaryService:
+	case restaurantService, restaurantBeijingService, restaurantAndroidService:
 		resp, err = h.handleRestaurant(r.Header, body)
-	case deliveryService, devliveryCanaryService:
+	case deliveryService, deliveryBeijingService, deliveryAndroidService:
 		resp, err = h.handleDelivery(r.Header, body)
 	default:
 		panic(fmt.Errorf("BUG: no correct service"))
@@ -356,15 +365,23 @@ func (h *serviceHandler) handleRestaurant(header http.Header, body []byte) (inte
 	result := deliveryResp.Result().(*DeliveryResponse)
 	deliveryTime := result.DeliveryTime
 
-	if serviceName == restaurantCanaryService {
+	if serviceName == restaurantBeijingService {
 		deliveryTime += " (cook duration: 5m)"
 	}
 
-	return &RestaurantResponse{
+	resp := &RestaurantResponse{
 		OrderID:      req.OrderID,
 		Food:         req.Food,
 		DeliveryTime: deliveryTime,
-	}, nil
+	}
+
+	if serviceName == restaurantAndroidService {
+		if result.Late != nil && *result.Late {
+			resp.Coupon = "$5"
+		}
+	}
+
+	return resp, nil
 }
 
 func (h *serviceHandler) handleDelivery(header http.Header, body []byte) (interface{}, error) {
@@ -386,16 +403,23 @@ func (h *serviceHandler) handleDelivery(header http.Header, body []byte) (interf
 
 	deliveryTime := time.Now().Add(10 * time.Minute).Local().Format(timeFormat)
 
-	if serviceName == devliveryCanaryService {
+	if serviceName == deliveryBeijingService {
 		deliveryTime += " (road duration: 7m)"
+	}
+
+	resp := &DeliveryResponse{
+		OrderID:      req.OrderID,
+		Item:         req.Item,
+		DeliveryTime: deliveryTime,
+	}
+
+	if serviceName == deliveryAndroidService {
+		late := true
+		resp.Late = &late
 	}
 
 	// NOTE: Make tracing more readable
 	time.Sleep(10 * time.Millisecond)
 
-	return &DeliveryResponse{
-		OrderID:      req.OrderID,
-		Item:         req.Item,
-		DeliveryTime: deliveryTime,
-	}, nil
+	return resp, nil
 }

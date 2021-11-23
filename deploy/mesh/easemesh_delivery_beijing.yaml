@@ -1,0 +1,12 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: ServiceCanary
+metadata:
+  name: delivery-mesh-beijing
+spec:
+  selector:
+    matchServices: [delivery-mesh]
+    matchInstanceLabels: {release: delivery-mesh-beijing}
+  trafficRules:
+    headers:
+      X-Location:
+        exact: Beijing
