@@ -3,6 +3,7 @@ kind: ServiceCanary
 metadata:
   name: refund-android
 spec:
+  priority: 5 # [1, 9], default is 5, the lower number is, the priority is higher.
   selector:
     matchServices: [restaurant-mesh, delivery-mesh]
     matchInstanceLabels: {release: refund-android}

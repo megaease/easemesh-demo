@@ -3,6 +3,7 @@ kind: ServiceCanary
 metadata:
   name: restaurant-mesh-beijing
 spec:
+  priority: 4
   selector:
     matchServices: [restaurant-mesh]
     matchInstanceLabels: {release: restaurant-mesh-beijing}
