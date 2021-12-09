@@ -57,11 +57,11 @@ type (
 	// OrderResponse is the response of order.
 	OrderResponse struct {
 		OrderID    string              `json:"order_id"`
-		Restuarant *RestaurantResponse `json:"restuarant"`
+		Restaurant *RestaurantResponse `json:"restaurant"`
 		Award      *AwardResponse      `json:"award,omitempty"`
 	}
 
-	// RestaurantRequest is the request of restuarant.
+	// RestaurantRequest is the request of restaurant.
 	RestaurantRequest struct {
 		OrderID string `json:"order_id"`
 		Food    string `json:"food"`
@@ -300,7 +300,7 @@ func (h *serviceHandler) handleOrder(header http.Header, body []byte) (interface
 
 	resp := &OrderResponse{
 		OrderID:    req.OrderID,
-		Restuarant: restaurantResp.Result().(*RestaurantResponse),
+		Restaurant: restaurantResp.Result().(*RestaurantResponse),
 	}
 
 	// NOTE: Allow failure of the award service.
