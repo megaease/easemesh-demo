@@ -1,0 +1,26 @@
+apiVersion: mesh.megaease.com/v1alpha1
+kind: Service
+metadata:
+  name: restaurant-mesh
+spec:
+  registerTenant: mesh-tenant
+  sidecar:
+    discoveryType: consul
+    address: "127.0.0.1"
+    ingressPort: 13001
+    ingressProtocol: http
+    egressPort: 13002
+    egressProtocol: http
+  resilience: null
+  canary: null
+  loadBalance:
+    policy: random
+  observability:
+    outputServer:
+      enabled: false
+      bootstrapServer: "" # kafka-0.kafka-hs.default:9093,kafka-1.kafka-hs.default:9093,kafka-2.kafka-hs.default:9093
+      timeout: 10000
+    tracings:
+      enabled: false
+    metrics:
+      enabled: false

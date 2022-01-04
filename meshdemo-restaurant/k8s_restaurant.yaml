@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: mesh-service
+  name: restaurant-mesh
+  annotations:
+    mesh.megaease.com/service-name: restaurant-mesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurant-mesh
+  template:
+    metadata:
+      labels:
+        app: restaurant-mesh
+    spec:
+      containers:
+        - image: megaease/easemesh-demo-restaurant:latest
+          name: restaurant-mesh
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          command: ["/bin/sh"]
+          args: ["-c", "java -server -jar  -Dspring.profiles.active=sit  meshdemo-0.0.1-SNAPSHOT.jar"]
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 3Gi
+            requests:
+              cpu: 200m
+              memory: 1Gi
+          volumeMounts:
+            - mountPath: /poc/application-sit.yml
+              name: configmap-volume-0
+              subPath: application-sit.yml
+          ports:
+            - containerPort: 80
+          env:
+          - name: SERVICE_NAME
+            value: restaurant-mesh
+      volumes:
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: application-sit-yml
+                path: application-sit.yml
+            name: restaurant-mesh
+          name: configmap-volume-0
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restaurant-mesh
+  namespace: mesh-service
+data:
+  application-sit-yml: |
+    server:
+      port: 80
+    spring:
+      application:
+        name: restaurant-mesh
+      cloud:
+        consul:
+          host: localhost
+          port: 13009
+    easemesh:
+      demo:
+        remote-service: delivery-mesh

@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: restaurant-mesh
+  cloud:
+    consul:
+      host: localhost
+      port: 13009
+      discovery:
+        instanceId: ${spring.application.name}:${random.value}

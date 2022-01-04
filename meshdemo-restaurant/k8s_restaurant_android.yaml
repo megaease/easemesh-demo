@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: mesh-service
+  name: restaurant-mesh-android
+  annotations:
+    mesh.megaease.com/service-name: restaurant-mesh
+    mesh.megaease.com/service-labels: release=refund-android
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurant-mesh-android
+  template:
+    metadata:
+      labels:
+        app: restaurant-mesh-android
+    spec:
+      containers:
+        - image: megaease/easemesh-demo-restaurant:latest
+          name: restaurant-mesh-android
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          command: ["/bin/sh"]
+          args: ["-c", "java -server -jar  -Dspring.profiles.active=sit  meshdemo-0.0.1-SNAPSHOT.jar"]
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 3Gi
+            requests:
+              cpu: 200m
+              memory: 1Gi
+          volumeMounts:
+            - mountPath: /poc/application-sit.yml
+              name: configmap-volume-0
+              subPath: application-sit.yml
+          ports:
+            - containerPort: 80
+          env:
+          - name: SERVICE_NAME
+            value: restaurant-mesh-android
+      volumes:
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: application-sit-yml
+                path: application-sit.yml
+            name: restaurant-mesh
+          name: configmap-volume-0
+      restartPolicy: Always
