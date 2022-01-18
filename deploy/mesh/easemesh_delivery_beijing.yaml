@@ -1,9 +1,9 @@
 apiVersion: mesh.megaease.com/v1alpha1
 kind: ServiceCanary
 metadata:
-  name: delivery-mesh-beijing
+  name: beijing
 spec:
-  priority: 5
+  priority: 3
   selector:
     matchServices: [delivery-mesh]
     matchInstanceLabels: {release: delivery-mesh-beijing}

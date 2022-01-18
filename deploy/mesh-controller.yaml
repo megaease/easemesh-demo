@@ -1,5 +1,5 @@
 apiPort: 13009
-externalServiceRegistry: consul-service-registry
+externalServiceRegistry: # consul-service-registry
 cleanExternalRegistry: true
 heartbeatInterval: 5s
 ingressPort: 19527
