@@ -2,23 +2,23 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: mesh-service
-  name: restaurant-mesh-beijing
+  name: restaurant-mesh-beijing-android
   annotations:
     mesh.megaease.com/service-name: restaurant-mesh
-    mesh.megaease.com/service-labels: release=restaurant-mesh-beijing
+    mesh.megaease.com/service-labels: release=restaurant-mesh-beijing-android
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: restaurant-mesh-beijing
+      app: restaurant-mesh-beijing-android
   template:
     metadata:
       labels:
-        app: restaurant-mesh-beijing
+        app: restaurant-mesh-beijing-android
     spec:
       containers:
         - image: megaease/easemesh-demo-restaurant:latest
-          name: restaurant-mesh-beijing
+          name: restaurant-mesh-beijing-android
           imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
@@ -41,7 +41,7 @@ spec:
             - containerPort: 80
           env:
           - name: SERVICE_NAME
-            value: restaurant-mesh-beijing
+            value: restaurant-mesh-beijing-android
       volumes:
         - configMap:
             defaultMode: 420
@@ -51,3 +51,19 @@ spec:
             name: restaurant-mesh
           name: configmap-volume-0
       restartPolicy: Always
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-mesh-beijing-android
+  namespace: mesh-service
+spec:
+  selector:
+    app: restaurant-mesh-beijing-android
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

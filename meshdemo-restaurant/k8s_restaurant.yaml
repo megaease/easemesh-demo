@@ -72,3 +72,18 @@ data:
     easemesh:
       demo:
         remote-service: delivery-mesh
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-mesh
+  namespace: mesh-service
+spec:
+  selector:
+    app: restaurant-mesh
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

@@ -24,8 +24,8 @@ public class RestaurantController {
         RestaurantResponse restaurantResp = RestaurantResponse.builder().orderId(order.getOrderID())
                 .food(resp.getItem()).deliveryTime(resp.getDeliveryTime()).build();
 
-        // For canary Beijing.
-        if ("restaurant-mesh-beijing".equals(System.getenv("SERVICE_NAME"))) {
+        // For canary Beijing&Android.
+        if ("restaurant-mesh-beijing-android".equals(System.getenv("SERVICE_NAME"))) {
             String deliveryTime = restaurantResp.getDeliveryTime() + " (cook duration: 5m)";
             restaurantResp.setDeliveryTime(deliveryTime);
         }

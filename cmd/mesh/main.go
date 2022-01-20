@@ -35,14 +35,14 @@ var (
 )
 
 const (
-	orderSerice              = "order-mesh"
-	restaurantService        = "restaurant-mesh"
-	restaurantBeijingService = "restaurant-mesh-beijing"
-	restaurantAndroidService = "restaurant-mesh-android"
-	awardService             = "award-mesh"
-	deliveryService          = "delivery-mesh"
-	deliveryBeijingService   = "delivery-mesh-beijing"
-	deliveryAndroidService   = "delivery-mesh-android"
+	orderSerice                     = "order-mesh"
+	restaurantService               = "restaurant-mesh"
+	restaurantBeijingAndroidService = "restaurant-mesh-beijing-android"
+	restaurantAndroidService        = "restaurant-mesh-android"
+	awardService                    = "award-mesh"
+	deliveryService                 = "delivery-mesh"
+	deliveryBeijingService          = "delivery-mesh-beijing"
+	deliveryAndroidService          = "delivery-mesh-android"
 
 	timeFormat = "2006-01-02T15:04:05"
 )
@@ -113,7 +113,7 @@ func prefligt() {
 
 	switch serviceName {
 	case orderSerice, restaurantService, deliveryService,
-		restaurantBeijingService, deliveryBeijingService,
+		restaurantBeijingAndroidService, deliveryBeijingService,
 		restaurantAndroidService, deliveryAndroidService:
 	default:
 		exitf("unsupport service name: %s", serviceName)
@@ -230,7 +230,7 @@ func (h *serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch serviceName {
 	case orderSerice:
 		resp, err = h.handleOrder(r.Header, body)
-	case restaurantService, restaurantBeijingService, restaurantAndroidService:
+	case restaurantService, restaurantBeijingAndroidService, restaurantAndroidService:
 		resp, err = h.handleRestaurant(r.Header, body)
 	case deliveryService, deliveryBeijingService, deliveryAndroidService:
 		resp, err = h.handleDelivery(r.Header, body)
@@ -365,7 +365,7 @@ func (h *serviceHandler) handleRestaurant(header http.Header, body []byte) (inte
 	result := deliveryResp.Result().(*DeliveryResponse)
 	deliveryTime := result.DeliveryTime
 
-	if serviceName == restaurantBeijingService {
+	if serviceName == restaurantBeijingAndroidService {
 		deliveryTime += " (cook duration: 5m)"
 	}
 

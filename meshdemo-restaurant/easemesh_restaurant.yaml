@@ -24,3 +24,4 @@ spec:
       enabled: false
     metrics:
       enabled: false
+    easemesh:
