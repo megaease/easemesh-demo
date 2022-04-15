@@ -8,6 +8,7 @@ require (
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/hashicorp/consul/api v1.10.1
 	github.com/json-iterator/go v1.1.12
+	github.com/megaease/easemesh/go-sdk v0.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.5
@@ -52,5 +53,6 @@ require (
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
+
+replace github.com/megaease/easemesh/go-sdk => /Users/longyun/code/easemesh/go-sdk

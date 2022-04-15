@@ -19,11 +19,11 @@ import (
 
 	"github.com/megaease/consuldemo/pkg/tracing"
 	"github.com/megaease/consuldemo/pkg/tracing/zipkin"
+	"github.com/megaease/easemesh/go-sdk/stdlib"
 )
 
 var (
 	podServicePort = 80
-	podHealthPort  = 9900
 	podEgressPort  = 13002
 
 	serviceName     = os.Getenv("SERVICE_NAME")
@@ -140,20 +140,17 @@ func prefligt() {
 	if err != nil {
 		exitf("create tracing failed: %v", err)
 	}
+
+	stdlib.ServeDefault()
 }
 
 func main() {
 	log.Println("preflight...")
 	prefligt()
 
-	healthServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", podHealthPort),
-		Handler: newHealthHandler(),
-	}
-
 	serviceServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", podServicePort),
-		Handler: newServiceHandler(),
+		Handler: stdlib.WrapHandler(newServiceHandler()),
 	}
 
 	go func() {
@@ -163,35 +160,16 @@ func main() {
 		}
 	}()
 
-	go func() {
-		log.Println("listen health port:", podHealthPort)
-		err := healthServer.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			exitf("%v", err)
-		}
-	}()
-
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT)
 	<-ch
 
-	healthServer.Shutdown(context.TODO())
 	serviceServer.Shutdown(context.TODO())
 }
 
 func exitf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	os.Exit(1)
-}
-
-type healthHandler struct{}
-
-func newHealthHandler() *healthHandler {
-	return &healthHandler{}
-}
-
-func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
 }
 
 type serviceHandler struct {
@@ -261,6 +239,8 @@ func (h *serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("response: %s", buff)
+
+	// log.Printf("headers: %v", w.Header())
 
 	w.WriteHeader(200)
 	w.Write(buff)
