@@ -27,17 +27,17 @@ spec:
         - name: ZIPKIN_SERVER_URL
           value: https://dev.megaease.cn/zipkin
 
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: delivery-mesh
-  namespace: mesh-service
-spec:
-  selector:
-    app: delivery-mesh
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
+#---
+#
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: delivery-mesh
+#  namespace: mesh-service
+#spec:
+#  selector:
+#    app: delivery-mesh
+#  ports:
+#    - protocol: TCP
+#      port: 80
+#      targetPort: 80
