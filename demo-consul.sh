@@ -12,7 +12,7 @@ kubectl get pod
 emctl get serviceinstance
 
 # 4. Try to request service
-curl http://192.168.0.200:31121/ -d '{"order_id": "abc1234", "food": "bread"}' | jq
+curl http://192.168.0.200:31121/ -d '{"order_id": "abc1234", "food": "bread"}'
 
 # ---
 
@@ -25,7 +25,7 @@ egctl --server 192.168.0.200:30146 object create -f deploy/consul-service-regist
 emctl get serviceinstance
 
 # 8. Request service again
-curl http://192.168.0.200:31121/ -d '{"order_id": "abc1234", "food": "bread"}' | jq
+curl http://192.168.0.200:31121/ -d '{"order_id": "abc1234", "food": "bread"}'
 
 # 9. Clean syncer
 egctl --server 192.168.0.200:30146 object delete consul-service-registry

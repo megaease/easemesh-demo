@@ -1,0 +1,214 @@
+kind: Pipeline
+name: sidecar-egress-pipeline-restaurant-mesh
+flow:
+    - filter: meshAdaptor
+      alias: ""
+      namespace: ""
+      jumpIf: {}
+    - filter: proxy
+      alias: ""
+      namespace: ""
+      jumpIf: {}
+filters:
+    - kind: MeshAdaptor
+      name: meshAdaptor
+      serviceCanaries:
+        - filter:
+            headerHashKey: ""
+            headers:
+                X-Mesh-Service-Canary:
+                    empty: true
+                    exact: ""
+                    prefix: ""
+                    regex: ""
+                X-Phone-Os:
+                    empty: false
+                    exact: Android
+                    prefix: ""
+                    regex: ""
+            matchAllHeaders: true
+            permil: 0
+            policy: ""
+            urls: []
+          header:
+            add: {}
+            del: []
+            set:
+                X-Mesh-Service-Canary: android
+        - filter:
+            headerHashKey: ""
+            headers:
+                X-Location:
+                    empty: false
+                    exact: Beijing
+                    prefix: ""
+                    regex: ""
+                X-Mesh-Service-Canary:
+                    empty: true
+                    exact: ""
+                    prefix: ""
+                    regex: ""
+                X-Phone-Os:
+                    empty: false
+                    exact: Android
+                    prefix: ""
+                    regex: ""
+            matchAllHeaders: true
+            permil: 0
+            policy: ""
+            urls: []
+          header:
+            add: {}
+            del: []
+            set:
+                X-Mesh-Service-Canary: beijing-android
+        - filter:
+            headerHashKey: ""
+            headers:
+                X-Location:
+                    empty: false
+                    exact: Beijing
+                    prefix: ""
+                    regex: ""
+                X-Mesh-Service-Canary:
+                    empty: true
+                    exact: ""
+                    prefix: ""
+                    regex: ""
+            matchAllHeaders: true
+            permil: 0
+            policy: ""
+            urls: []
+          header:
+            add: {}
+            del: []
+            set:
+                X-Mesh-Service-Canary: beijing
+      version: ""
+    - kind: Proxy
+      maxIdleConns: 0
+      maxIdleConnsPerHost: 0
+      name: proxy
+      pools:
+        - circuitBreakerPolicy: circuitBreaker
+          failureCodes:
+            - 501
+            - 502
+            - 503
+          filter: null
+          loadBalance:
+            headerHashKey: ""
+            policy: random
+          retryPolicy: retry
+          serverMaxBodySize: 0
+          serverTags: []
+          servers:
+            - keepHost: false
+              tags: []
+              url: http://10.1.1.246:13001
+              weight: 0
+          serviceName: ""
+          serviceRegistry: ""
+          spanName: ""
+          timeout: 100ms
+        - circuitBreakerPolicy: circuitBreaker
+          failureCodes:
+            - 501
+            - 502
+            - 503
+          filter:
+            headerHashKey: ""
+            headers:
+                X-Mesh-Service-Canary:
+                    empty: false
+                    exact: android
+                    prefix: ""
+                    regex: ""
+                X-Phone-Os:
+                    empty: false
+                    exact: Android
+                    prefix: ""
+                    regex: ""
+            matchAllHeaders: true
+            permil: 0
+            policy: ""
+            urls: []
+          loadBalance:
+            headerHashKey: ""
+            policy: random
+          retryPolicy: retry
+          serverMaxBodySize: 0
+          serverTags: []
+          servers:
+            - keepHost: false
+              tags: []
+              url: http://10.1.1.251:13001
+              weight: 0
+          serviceName: ""
+          serviceRegistry: ""
+          spanName: ""
+          timeout: 100ms
+        - circuitBreakerPolicy: circuitBreaker
+          failureCodes:
+            - 501
+            - 502
+            - 503
+          filter:
+            headerHashKey: ""
+            headers:
+                X-Location:
+                    empty: false
+                    exact: Beijing
+                    prefix: ""
+                    regex: ""
+                X-Mesh-Service-Canary:
+                    empty: false
+                    exact: beijing-android
+                    prefix: ""
+                    regex: ""
+                X-Phone-Os:
+                    empty: false
+                    exact: Android
+                    prefix: ""
+                    regex: ""
+            matchAllHeaders: true
+            permil: 0
+            policy: ""
+            urls: []
+          loadBalance:
+            headerHashKey: ""
+            policy: random
+          retryPolicy: retry
+          serverMaxBodySize: 0
+          serverTags: []
+          servers:
+            - keepHost: false
+              tags: []
+              url: http://10.1.1.252:13001
+              weight: 0
+          serviceName: ""
+          serviceRegistry: ""
+          spanName: ""
+          timeout: 100ms
+      serverMaxBodySize: 0
+      version: ""
+resilience:
+    - backOffPolicy: random
+      kind: Retry
+      maxAttempts: 3
+      name: retry
+      randomizationFactor: 0
+      version: ""
+      waitDuration: 500ms
+    - failureRateThreshold: 50
+      kind: CircuitBreaker
+      maxWaitDurationInHalfOpenState: ""
+      minimumNumberOfCalls: 0
+      name: circuitBreaker
+      permittedNumberOfCallsInHalfOpenState: 0
+      slidingWindowSize: 100
+      slidingWindowType: COUNT_BASED
+      slowCallDurationThreshold: ""
+      slowCallRateThreshold: 2
+      version: ""
+      waitDurationInOpenState: ""

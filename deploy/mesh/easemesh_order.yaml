@@ -11,8 +11,22 @@ spec:
     ingressprotocol: http
     egressport: 13002
     egressprotocol: http
-  resilience: null
-  canary: null
+    #resilience:
+    #  failureCodes: [500, 501, 502, 503]
+    #  rateLimiter: name: rate-limiter
+    #    kind: RateLimiter
+    #    policies:
+    #    - name: policy-example
+    #      timeoutDuration: 100ms
+    #      limitRefreshPeriod: 10ms
+    #      limitForPeriod: 50
+    #    defaultPolicyRef: policy-example
+    #    urls:
+    #    - methods: [GET, POST, PUT, DELETE]
+    #      url:
+    #        exact: /admin
+    #        regex: ^/pets/\d+$
+    #      policyRef: policy-example
   loadBalance:
-    policy: random
-    headerhashkey: ""
+    policy: headerHash
+    headerHashkey: "Content-Type"

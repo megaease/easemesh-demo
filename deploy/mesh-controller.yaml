@@ -6,7 +6,7 @@ ingressPort: 19527
 kind: MeshController
 name: easemesh-controller
 registryType: consul
-security: null
+  #security: null
 
 # sidecar injection stuff
 imageRegistryURL:

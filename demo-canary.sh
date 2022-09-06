@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# 0. Prepare namespace and mesh config
+kubectl create ns mesh-service
+
+emctl apply -f deploy/mesh/easemesh_tenant.yaml
+emctl apply -f deploy/mesh/easemesh_order.yaml
+emctl apply -f meshdemo-restaurant/easemesh_restaurant.yaml
+emctl apply -f deploy/mesh/easemesh_delivery.yaml
+
 # 1. Deploy primary stack
 kubectl apply -f deploy/mesh/k8s_order.yaml
 kubectl apply -f meshdemo-restaurant/k8s_restaurant.yaml
