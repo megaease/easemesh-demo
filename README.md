@@ -16,4 +16,10 @@ The script is `./demo-canary.sh` which contains the whole procedure of demo for 
 
 And please notice the access port `30188` could differ from your environment. You can replace it by the node port from `kubectl get service -n mesh-service order-mesh-public`, whose precise output woule be ` kubectl get service -n mesh-service order-mesh-public -o yaml --output jsonpath='{.spec.ports[0].nodePort}'`.
 
+The quick command coule be:
+
+```bash
+$ ORDER_PORT=$(kubectl get service -n mesh-service order-mesh-public -o yaml --output jsonpath='{.spec.ports[0].nodePort}') sed -i -e "s/30188/${ORDER_PORT}/g" demo-canary.sh
+```
+
 After finishing testings, run `./clean-canary` would clean all of them.
