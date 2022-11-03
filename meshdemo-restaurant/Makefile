@@ -4,4 +4,4 @@ build:
 	mvn clean package -Dmaven.test.skip
 
 build_docker: build
-	docker build -t megaease/easemesh-demo-restaurant:latest .
+	docker buildx build --platform linux/amd64 --load -t megaease/easemesh-demo-restaurant:latest .

@@ -12,4 +12,6 @@ public class DeliveryResponse {
     private String deliveryTime;
 
     private Boolean late;
+
+    private String[] serviceTracings;
 }

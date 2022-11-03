@@ -35,6 +35,8 @@ public class RestaurantController {
             restaurantResp.setCoupon("$5");
         }
 
+        restaurantResp.updateServiceTracings(resp.getServiceTracings());
+
         return restaurantResp;
     }
 
