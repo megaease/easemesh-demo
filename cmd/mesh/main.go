@@ -59,6 +59,8 @@ type (
 		OrderID    string              `json:"order_id"`
 		Restaurant *RestaurantResponse `json:"restaurant"`
 		Award      *AwardResponse      `json:"award,omitempty"`
+
+		ServiceTracings []string `json:"service_tracings,omitempty"`
 	}
 
 	// RestaurantRequest is the request of restaurant.
@@ -75,6 +77,8 @@ type (
 
 		// Android canary fields.
 		Coupon string `json:"coupon,omitempty"`
+
+		ServiceTracings []string `json:"service_tracings,omitempty"`
 	}
 
 	// AwardRequest is the request of award.
@@ -103,8 +107,22 @@ type (
 
 		// Android canary fields.
 		Late *bool `json:"late,omitempty"`
+
+		ServiceTracings []string `json:"service_tracings,omitempty"`
+	}
+
+	// AgentInfo stores agent information.
+	AgentInfo struct {
+		Type    string `json:"type"`
+		Version string `json:"version"`
 	}
 )
+
+var globalHostName string
+
+func init() {
+	globalHostName, _ = os.Hostname()
+}
 
 func prefligt() {
 	if serviceName == "" {
@@ -120,10 +138,10 @@ func prefligt() {
 	}
 	log.Printf("service: %s", serviceName)
 
-	serverURL := "http://localhost:9411/api/v2/spans"
-	if zipkinServerURL != "" {
-		serverURL = zipkinServerURL
-	}
+	serverURL := "https://172.20.1.116:32330/report/application-log"
+	// if zipkinServerURL != "" {
+	// 	serverURL = zipkinServerURL
+	// }
 
 	var err error
 	tracer, err = tracing.New(&tracing.Spec{
@@ -140,20 +158,26 @@ func prefligt() {
 	if err != nil {
 		exitf("create tracing failed: %v", err)
 	}
-
-	stdlib.ServeDefault()
 }
 
 func main() {
 	log.Println("preflight...")
 	prefligt()
 
+	agent := stdlib.DefaultAgent
+	switch serviceName {
+	case restaurantService, restaurantAndroidService, restaurantBeijingAndroidService:
+		agent = stdlib.NewAgent("EaseAgent")
+	}
+	stdlib.ServeAgent(agent)
+
 	serviceServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", podServicePort),
-		Handler: stdlib.WrapHandler(newServiceHandler()),
+		Handler: agent.WrapHandler(newServiceHandler()),
 	}
 
 	go func() {
+		log.Printf("launch service server...")
 		err := serviceServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			exitf("%v", err)
@@ -246,6 +270,17 @@ func (h *serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(buff)
 }
 
+func completeServiceName(serviceName string) string {
+	zone := os.Getenv("DEPLOYMENT_ENV_NAME")
+	domain := os.Getenv("KUBE_NAMESPACE_NAME")
+
+	if zone != "" && domain != "" {
+		return fmt.Sprintf("%s.%s.%s", zone, domain, serviceName)
+	}
+
+	return serviceName
+}
+
 func (h *serviceHandler) handleOrder(header http.Header, body []byte) (interface{}, error) {
 	span := tracing.NewSpan(tracer, serviceName)
 	defer span.Finish()
@@ -256,7 +291,7 @@ func (h *serviceHandler) handleOrder(header http.Header, body []byte) (interface
 		return nil, fmt.Errorf("unmarshal failed: %v", err)
 	}
 
-	restaurantURL := fmt.Sprintf("http://%s:%d", restaurantService, podEgressPort)
+	restaurantURL := fmt.Sprintf("http://%s:%d", completeServiceName(restaurantService), podEgressPort)
 	restaurantReq := restyClient.R()
 	restaurantReq.Header = header.Clone()
 	restaurantReq.SetHeader("Content-Type", "application/json").SetBody(RestaurantRequest{
@@ -285,7 +320,7 @@ func (h *serviceHandler) handleOrder(header http.Header, body []byte) (interface
 
 	// NOTE: Allow failure of the award service.
 
-	awardURL := fmt.Sprintf("http://%s:%d", awardService, podEgressPort)
+	awardURL := fmt.Sprintf("http://%s:%d", completeServiceName(awardService), podEgressPort)
 	awardReq := restyClient.R()
 	awardReq.Header = header.Clone()
 	awardReq.SetHeader("Content-Type", "application/json").SetBody(AwardRequest{
@@ -304,6 +339,9 @@ func (h *serviceHandler) handleOrder(header http.Header, body []byte) (interface
 	} else {
 		resp.Award = awardResp.Result().(*AwardResponse)
 	}
+
+	resp.ServiceTracings = append([]string{globalHostName}, resp.Restaurant.ServiceTracings...)
+	resp.Restaurant.ServiceTracings = nil
 
 	return resp, nil
 }
@@ -327,7 +365,7 @@ func (h *serviceHandler) handleRestaurant(header http.Header, body []byte) (inte
 		return nil, fmt.Errorf("unmarshal failed: %v", err)
 	}
 
-	deliveryURL := fmt.Sprintf("http://%s:%d", deliveryService, podEgressPort)
+	deliveryURL := fmt.Sprintf("http://%s:%d", completeServiceName(deliveryService), podEgressPort)
 	deliveryReq.SetHeader("Content-Type", "application/json").SetBody(DeliveryRequest{
 		OrderID: req.OrderID,
 		Item:    req.Food,
@@ -360,6 +398,8 @@ func (h *serviceHandler) handleRestaurant(header http.Header, body []byte) (inte
 			resp.Coupon = "$5"
 		}
 	}
+
+	resp.ServiceTracings = append([]string{globalHostName}, result.ServiceTracings...)
 
 	return resp, nil
 }
@@ -400,6 +440,8 @@ func (h *serviceHandler) handleDelivery(header http.Header, body []byte) (interf
 
 	// NOTE: Make tracing more readable
 	time.Sleep(10 * time.Millisecond)
+
+	resp.ServiceTracings = append([]string{globalHostName}, resp.ServiceTracings...)
 
 	return resp, nil
 }

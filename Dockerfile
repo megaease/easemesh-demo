@@ -15,6 +15,9 @@ WORKDIR /opt/consuldemo
 
 COPY entrypoint.sh /
 COPY --from=builder /opt/consuldemo/bin/ /opt/consuldemo/bin/
+COPY --from=builder /opt/consuldemo/tls_ca_cert.pem /opt/consuldemo/
+COPY --from=builder /opt/consuldemo/tls_cert.pem /opt/consuldemo/
+COPY --from=builder /opt/consuldemo/tls_key.key /opt/consuldemo/
 
 RUN apk --no-cache add tini tzdata && \
         chmod +x /entrypoint.sh /opt/consuldemo/bin/*

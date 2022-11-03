@@ -18,7 +18,12 @@
 package zipkin
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
@@ -80,7 +85,7 @@ func New(serviceName string, spec *Spec) (opentracing.Tracer, io.Closer, error) 
 		return nil, nil, err
 	}
 
-	reporter := zipkingohttp.NewReporter(spec.ServerURL)
+	reporter := zipkingohttp.NewReporter(spec.ServerURL, zipkingohttp.Client(zipkingohttp.HTTPDoer(zipkinHTTPDoer)))
 
 	nativeTracer, err := zipkingo.NewTracer(
 		&cancellableReporter{reporter: reporter},
@@ -94,4 +99,43 @@ func New(serviceName string, spec *Spec) (opentracing.Tracer, io.Closer, error) 
 	}
 
 	return zipkinot.Wrap(nativeTracer), reporter, nil
+}
+
+// HTTPDoer is a http doer for zipkin.
+type HTTPDoer struct {
+	client *http.Client
+}
+
+var zipkinHTTPDoer = &HTTPDoer{}
+
+// Do implements http doer.
+func (h *HTTPDoer) Do(req *http.Request) (*http.Response, error) {
+	req.SetBasicAuth("b693b759b320444092edb3cec33b352c", "1e5dd0663181409bbf96d772c0606b1a")
+
+	return h.client.Do(req)
+}
+
+func init() {
+	caCert, err := ioutil.ReadFile("tls_ca_cert.pem")
+	if err != nil {
+		log.Fatal(err)
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	cert, err := tls.LoadX509KeyPair("tls_cert.pem", "tls_key.key")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:      caCertPool,
+				Certificates: []tls.Certificate{cert},
+			},
+		},
+	}
+
+	zipkinHTTPDoer.client = client
 }
